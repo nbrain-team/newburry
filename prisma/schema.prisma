@@ -1,0 +1,198 @@
+// Newburry Platform - Prisma Schema
+// Meeting transcript analysis and AI agent system
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// Fathom meeting data (for import reference)
+model Meeting {
+  id             String    @id
+  meetingTitle   String?
+  title          String?
+  url            String?
+  shareUrl       String?
+  createdAt      DateTime
+  scheduledStart DateTime?
+  scheduledEnd   DateTime?
+  recordingStart DateTime?
+  recordingEnd   DateTime?
+  transcript     String?   @db.Text
+  summary        String?   @db.Text
+
+  @@map("meetings")
+}
+
+// Users (admins and regular users)
+model User {
+  id        Int      @id @default(autoincrement())
+  role      String   // 'admin' or 'user'
+  name      String
+  email     String   @unique
+  username  String   @unique
+  password  String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  // Relations
+  chatSessions AgentChatSession[]
+  preferences  AgentUserPreference[]
+  feedback     AgentFeedback[]
+
+  @@map("users")
+}
+
+// AI Agent Chat Sessions
+model AgentChatSession {
+  id         Int       @id @default(autoincrement())
+  userId     Int       @map("user_id")
+  clientId   Int?      @map("client_id")
+  projectId  Int?      @map("project_id")
+  title      String    @db.VarChar(500)
+  folder     String?   @db.VarChar(255)
+  tags       String[]
+  isArchived Boolean   @default(false) @map("is_archived")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+
+  // Relations
+  user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+  messages AgentChatMessage[]
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([projectId])
+  @@index([folder])
+  @@index([createdAt])
+  @@map("agent_chat_sessions")
+}
+
+// AI Agent Chat Messages
+model AgentChatMessage {
+  id         Int      @id @default(autoincrement())
+  sessionId  Int      @map("session_id")
+  role       String   @db.VarChar(20) // 'user', 'assistant', 'system'
+  content    String   @db.Text
+  modelUsed  String?  @map("model_used") @db.VarChar(100)
+  tokensUsed Int?     @map("tokens_used")
+  planJson   Json?    @map("plan_json")
+  toolCalls  Json?    @map("tool_calls")
+  sources    Json?
+  jobId      String?  @map("job_id")
+  jobStatus  String?  @map("job_status")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  // Relations
+  session  AgentChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  feedback AgentFeedback[]
+
+  @@index([sessionId])
+  @@index([createdAt])
+  @@index([role])
+  @@map("agent_chat_messages")
+}
+
+// User Preferences (AI learning)
+model AgentUserPreference {
+  id                  Int      @id @default(autoincrement())
+  userId              Int      @map("user_id")
+  preferenceKey       String   @map("preference_key") @db.VarChar(255)
+  preferenceValue     String   @map("preference_value") @db.Text
+  learnedFromFeedback Boolean  @default(false) @map("learned_from_feedback")
+  confidenceScore     Float    @default(0.5) @map("confidence_score")
+  createdAt           DateTime @default(now()) @map("created_at")
+  updatedAt           DateTime @updatedAt @map("updated_at")
+
+  // Relations
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, preferenceKey])
+  @@index([userId])
+  @@map("agent_user_preferences")
+}
+
+// Feedback for AI responses
+model AgentFeedback {
+  id                  Int       @id @default(autoincrement())
+  messageId           Int       @map("message_id")
+  userId              Int       @map("user_id")
+  rating              Int       // 1 = thumbs up, -1 = thumbs down
+  categories          Json?
+  textFeedback        String?   @map("text_feedback") @db.Text
+  trainingInstruction String?   @map("training_instruction") @db.Text
+  status              String    @default("pending") @db.VarChar(20)
+  approvedBy          Int?      @map("approved_by")
+  approvedAt          DateTime? @map("approved_at")
+  createdAt           DateTime  @default(now()) @map("created_at")
+
+  // Relations
+  message AgentChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([messageId])
+  @@index([userId])
+  @@index([status])
+  @@map("agent_feedback")
+}
+
+// Meeting Transcripts (from Fathom)
+model MeetingTranscript {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  clientId         Int?      @map("client_id")
+  opportunityId    Int?      @map("opportunity_id")
+  meetingId        String?   @unique @map("meeting_id") @db.VarChar(255)
+  title            String?   @db.Text
+  scheduledAt      DateTime? @map("scheduled_at")
+  durationSeconds  Int?      @map("duration_seconds")
+  recordingUrl     String?   @map("recording_url") @db.Text
+  transcriptUrl    String?   @map("transcript_url") @db.Text
+  transcriptText   String?   @map("transcript_text") @db.Text
+  summary          String?   @db.Text
+  chapters         Json?
+  topics           Json?
+  actionItems      Json?     @map("action_items")
+  keyQuestions     Json?     @map("key_questions")
+  participants     Json?
+  aiSummary        String?   @map("ai_summary") @db.Text
+  aiInsights       Json?     @map("ai_insights")
+  assignmentStatus String    @default("unassigned") @map("assignment_status") @db.VarChar(50)
+  assignedAt       DateTime? @map("assigned_at")
+  assignedBy       Int?      @map("assigned_by")
+  rawPayload       Json?     @map("raw_payload")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([userId])
+  @@index([clientId])
+  @@index([meetingId])
+  @@index([scheduledAt])
+  @@index([assignmentStatus])
+  @@index([createdAt])
+  @@map("meeting_transcripts")
+}
+
+// Projects (for organizing work)
+model Project {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String?  @db.Text
+  status      String   @default("active")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@map("projects")
+}
+
+// Migrations tracking
+model Migration {
+  id         Int      @id @default(autoincrement())
+  name       String   @unique @db.VarChar(255)
+  executedAt DateTime @default(now()) @map("executed_at")
+
+  @@map("migrations")
+}
+
