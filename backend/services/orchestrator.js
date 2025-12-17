@@ -137,22 +137,15 @@ class AgenticOrchestrator {
         content: userMessage,
       });
 
-      // Check if any tool returned a job_id (async job)
-      const asyncJob = executionResults.find(r => r.data && r.data.job_id);
-      const jobId = asyncJob?.data?.job_id || null;
-      const jobStatus = asyncJob?.data?.status || null;
-
       await this.saveMessage({
         sessionId,
         role: 'assistant',
         content: response.content,
-        model_used: this.modelName,
+        model_used: response.model || this.modelName,
         tokens_used: response.tokensUsed,
         plan_json: plan,
         tool_calls: executionResults.map(r => r.toolCall),
         sources: executionResults.map(r => r.source),
-        job_id: jobId,
-        job_status: jobStatus,
       });
 
       // Step 8: Update memory
@@ -916,8 +909,6 @@ ${resultsContext}`;
       plan_json = null,
       tool_calls = null,
       sources = null,
-      job_id = null,
-      job_status = null,
     } = params;
 
     if (!sessionId) {
@@ -927,14 +918,12 @@ ${resultsContext}`;
     try {
       await this.dbPool.query(
         `INSERT INTO agent_chat_messages 
-         (session_id, role, content, model_used, tokens_used, plan_json, tool_calls, sources, job_id, job_status)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)`,
+         (session_id, role, content, model_used, tokens_used, plan_json, tool_calls, sources)
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
         [sessionId, role, content, model_used, tokens_used, 
          plan_json ? JSON.stringify(plan_json) : null,
          tool_calls ? JSON.stringify(tool_calls) : null,
-         sources ? JSON.stringify(sources) : null,
-         job_id,
-         job_status]
+         sources ? JSON.stringify(sources) : null]
       );
     } catch (error) {
       if (!error.message.includes('session_id')) {

@@ -16,7 +16,7 @@ function getPineconeClient() {
   if (!pineconeClient) {
     pineconeClient = new Pinecone({
       apiKey: process.env.PINECONE_API_KEY,
-      environment: process.env.PINECONE_ENVIRONMENT,
+      // environment parameter removed - no longer needed in v3+
     });
   }
   return pineconeClient;
