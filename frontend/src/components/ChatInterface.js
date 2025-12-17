@@ -133,28 +133,24 @@ function ChatInterface({ user, onLogout, apiBase }) {
               const data = JSON.parse(line.slice(6));
               
               if (data.type === 'plan') {
-                // Show AI's execution plan
-                const planText = data.data.steps.map((s, i) => 
-                  `${i + 1}. ${s.tool.replace(/_/g, ' ')}`
-                ).join('\n');
-                
+                // Show that AI is starting to work
                 setMessages(prev => [...prev, {
                   role: 'system',
-                  content: `🔍 Analyzing your request...\n${planText}`,
+                  content: `🔍 Analyzing your request...`,
                   created_at: new Date().toISOString(),
                   isProgress: true
                 }]);
               } else if (data.type === 'tool_result') {
-                // Show progress as tools execute
+                // Show only the current tool being executed
                 const { step, tool, success } = data.data;
                 const toolName = tool.replace(/_/g, ' ');
                 
                 setMessages(prev => {
-                  // Update or add progress message
+                  // Replace progress message with current step only
                   const filtered = prev.filter(m => !m.isProgress);
                   return [...filtered, {
                     role: 'system',
-                    content: `⚙️ ${success ? '✓' : '✗'} ${toolName}...`,
+                    content: `⚙️ ${toolName}...`,
                     created_at: new Date().toISOString(),
                     isProgress: true
                   }];
