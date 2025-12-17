@@ -152,8 +152,10 @@ function ChatInterface({ user, onLogout, apiBase }) {
                   });
                 }
               } else if (data.type === 'complete') {
-                // Final message received
-                await loadSessions(); // Refresh sessions (title might have been auto-generated)
+                // Final message received - refresh sessions to get auto-generated title
+                setTimeout(() => {
+                  loadSessions();
+                }, 1000); // Small delay to allow backend to generate title
               }
             } catch (e) {
               // Ignore parse errors
