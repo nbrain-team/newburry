@@ -70,10 +70,11 @@ module.exports = {
     const { userId, clientId } = context;
 
     try {
-      // Step 1: Create embedding from query
+      // Step 1: Create embedding from query (768 dimensions to match Pinecone index)
       const openai = getOpenAIClient();
       const embeddingResponse = await openai.embeddings.create({
-        model: 'text-embedding-ada-002',
+        model: 'text-embedding-3-small',
+        dimensions: 768, // Match Pinecone index dimensions
         input: query,
       });
       const embedding = embeddingResponse.data[0].embedding;
@@ -163,7 +164,8 @@ module.exports = {
     const openai = getOpenAIClient();
     
     const response = await openai.embeddings.create({
-      model: 'text-embedding-ada-002',  // MUST match transcriptIndexer model
+      model: 'text-embedding-3-small',  // MUST match transcriptIndexer model
+      dimensions: 768, // Match Pinecone index dimensions
       input: text,
     });
 
@@ -190,7 +192,8 @@ module.exports = {
     try {
       const openai = getOpenAIClient();
       const embeddingResponse = await openai.embeddings.create({
-        model: 'text-embedding-ada-002',
+        model: 'text-embedding-3-small',
+        dimensions: 768, // Match Pinecone index dimensions
         input: content,
       });
       const embedding = embeddingResponse.data[0].embedding;

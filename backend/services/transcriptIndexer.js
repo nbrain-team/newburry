@@ -15,7 +15,8 @@ const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
  */
 async function createEmbedding(text) {
   const response = await openai.embeddings.create({
-    model: 'text-embedding-ada-002',
+    model: 'text-embedding-3-small', // 768 dimensions to match Pinecone index
+    dimensions: 768, // Explicitly set to match Pinecone index
     input: text.substring(0, 8000), // OpenAI limit
   });
   return response.data[0].embedding;
