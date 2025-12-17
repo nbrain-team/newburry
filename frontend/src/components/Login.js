@@ -46,10 +46,12 @@ function Login({ onLogin, apiBase }) {
       <div className="login-card">
         <div className="login-header">
           <div className="logo">
-            <div className="logo-icon">🧠</div>
-            <h1>Newburry</h1>
+            <h1 className="logo-text">
+              <span className="logo-newbury">NEWBURY</span>
+              <span className="logo-partners">PARTNERS</span>
+            </h1>
           </div>
-          <p className="tagline">AI-Powered Transcript Analysis</p>
+          <p className="tagline">AI-Powered Transcript Analysis Platform</p>
         </div>
 
         <form onSubmit={handleSubmit} className="login-form">

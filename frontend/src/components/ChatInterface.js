@@ -189,8 +189,8 @@ function ChatInterface({ user, onLogout, apiBase }) {
         <div className="sidebar">
           <div className="sidebar-header">
             <div className="logo-small">
-              <span className="logo-icon-small">🧠</span>
-              <span>Newburry</span>
+              <span className="logo-newbury-small">NEWBURY</span>
+              <span className="logo-partners-small">PARTNERS</span>
             </div>
             <button onClick={createNewSession} className="new-chat-button">
               <span className="plus-icon">+</span>
