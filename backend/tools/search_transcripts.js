@@ -51,6 +51,7 @@ module.exports = {
       console.log(`[Tool:search_transcripts] Context - clientId: ${clientId}, userId: ${userId}`);
       console.log(`[Tool:search_transcripts] Params - client_id: ${client_id}, limit: ${limit}, days_ago: ${days_ago}`);
       
+      // Simplified query that uses the GIN index (much faster)
       let sqlQuery = `
         SELECT 
           mt.id,
@@ -62,28 +63,19 @@ module.exports = {
           mt.key_questions,
           mt.topics,
           mt.participants,
-          mt.transcript_text,
+          LEFT(mt.transcript_text, 2000) as transcript_text,
           mt.assignment_status,
-          c.name as client_name,
           ts_rank(to_tsvector('english', 
             COALESCE(mt.title, '') || ' ' || 
             COALESCE(mt.transcript_text, '') || ' ' || 
-            COALESCE(mt.summary, '') || ' ' ||
-            COALESCE(c.name, '') || ' ' ||
-            COALESCE(mt.participants::text, '')
+            COALESCE(mt.summary, '')
           ), plainto_tsquery('english', $1)) as relevance
         FROM meeting_transcripts mt
-        LEFT JOIN users c ON mt.client_id = c.id
-        WHERE (
-          to_tsvector('english', 
+        WHERE to_tsvector('english', 
             COALESCE(mt.title, '') || ' ' || 
             COALESCE(mt.transcript_text, '') || ' ' || 
-            COALESCE(mt.summary, '') || ' ' ||
-            COALESCE(c.name, '') || ' ' ||
-            COALESCE(mt.participants::text, '')
+            COALESCE(mt.summary, '')
           ) @@ plainto_tsquery('english', $1)
-          OR c.name ILIKE '%' || $1 || '%'
-        )
       `;
       
       const params = [query];
@@ -95,19 +87,18 @@ module.exports = {
         params.push(client_id);
         paramIndex++;
       }
-      // NOTE: Removed automatic clientId filtering - all users see all transcripts
       
       // Filter by date range if provided
       if (days_ago) {
         sqlQuery += ` AND mt.scheduled_at >= NOW() - INTERVAL '${days_ago} days'`;
       }
       
+      // Limit results for performance - use smaller limit
+      const actualLimit = Math.min(limit, 10);
       sqlQuery += ` ORDER BY relevance DESC, mt.scheduled_at DESC LIMIT $${paramIndex}`;
-      params.push(limit);
+      params.push(actualLimit);
       
-      console.log(`[Tool:search_transcripts] Executing SQL query...`);
-      console.log(`[Tool:search_transcripts] SQL: ${sqlQuery}`);
-      console.log(`[Tool:search_transcripts] Params: ${JSON.stringify(params)}`);
+      console.log(`[Tool:search_transcripts] Executing optimized SQL query with limit ${actualLimit}...`);
       
       const result = await dbPool.query(sqlQuery, params);
       
@@ -146,7 +137,6 @@ module.exports = {
         return {
           id: t.id,
           title: t.title,
-          client: t.client_name,
           date: t.scheduled_at,
           duration_minutes: t.duration_seconds ? Math.floor(t.duration_seconds / 60) : null,
           summary: t.summary,
@@ -180,7 +170,6 @@ module.exports = {
         source_type: 'transcript_search',
         data_points: transcripts.map(t => ({
           title: t.title,
-          client: t.client,
           date: t.date,
         })),
       };
