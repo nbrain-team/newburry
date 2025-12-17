@@ -130,7 +130,37 @@ function ChatInterface({ user, onLogout, apiBase }) {
             try {
               const data = JSON.parse(line.slice(6));
               
-              if (data.type === 'response_chunk') {
+              if (data.type === 'plan') {
+                // Show AI's execution plan
+                const planText = data.data.steps.map((s, i) => 
+                  `${i + 1}. ${s.tool.replace(/_/g, ' ')}`
+                ).join('\n');
+                
+                setMessages(prev => [...prev, {
+                  role: 'system',
+                  content: `🔍 Analyzing your request...\n${planText}`,
+                  created_at: new Date().toISOString(),
+                  isProgress: true
+                }]);
+              } else if (data.type === 'tool_result') {
+                // Show progress as tools execute
+                const { step, tool, success } = data.data;
+                const toolName = tool.replace(/_/g, ' ');
+                
+                setMessages(prev => {
+                  // Update or add progress message
+                  const filtered = prev.filter(m => !m.isProgress);
+                  return [...filtered, {
+                    role: 'system',
+                    content: `⚙️ ${success ? '✓' : '✗'} ${toolName}...`,
+                    created_at: new Date().toISOString(),
+                    isProgress: true
+                  }];
+                });
+              } else if (data.type === 'response_chunk') {
+                // Remove all progress messages when actual response starts
+                setMessages(prev => prev.filter(m => !m.isProgress));
+                
                 assistantMessage += data.data.content;
                 
                 // Update or create assistant message in UI
@@ -152,10 +182,21 @@ function ChatInterface({ user, onLogout, apiBase }) {
                   });
                 }
               } else if (data.type === 'complete') {
+                // Remove any remaining progress messages
+                setMessages(prev => prev.filter(m => !m.isProgress));
+                
                 // Final message received - refresh sessions to get auto-generated title
                 setTimeout(() => {
                   loadSessions();
                 }, 1000); // Small delay to allow backend to generate title
+              } else if (data.type === 'error') {
+                // Remove progress messages and show error
+                setMessages(prev => prev.filter(m => !m.isProgress));
+                setMessages(prev => [...prev, {
+                  role: 'assistant',
+                  content: `Error: ${data.error}`,
+                  created_at: new Date().toISOString()
+                }]);
               }
             } catch (e) {
               // Ignore parse errors
@@ -261,23 +302,27 @@ function ChatInterface({ user, onLogout, apiBase }) {
           ) : (
             <>
               {messages.map((message, index) => (
-                <div key={index} className={`message ${message.role}`}>
-                  <div className="message-avatar">
-                    {message.role === 'user' ? (
-                      <div className="user-avatar-small">{user.name.charAt(0).toUpperCase()}</div>
-                    ) : (
-                      <div className="ai-avatar">AI</div>
-                    )}
-                  </div>
-                  <div className="message-content">
-                    <div className="message-header">
-                      <span className="message-author">
-                        {message.role === 'user' ? user.name : 'AI Agent'}
-                      </span>
-                      <span className="message-time">
-                        {new Date(message.created_at).toLocaleTimeString()}
-                      </span>
+                <div key={index} className={`message ${message.role} ${message.isProgress ? 'system-message' : ''}`}>
+                  {message.role !== 'system' && (
+                    <div className="message-avatar">
+                      {message.role === 'user' ? (
+                        <div className="user-avatar-small">{user.name.charAt(0).toUpperCase()}</div>
+                      ) : (
+                        <div className="ai-avatar">AI</div>
+                      )}
                     </div>
+                  )}
+                  <div className="message-content">
+                    {message.role !== 'system' && (
+                      <div className="message-header">
+                        <span className="message-author">
+                          {message.role === 'user' ? user.name : 'AI Agent'}
+                        </span>
+                        <span className="message-time">
+                          {new Date(message.created_at).toLocaleTimeString()}
+                        </span>
+                      </div>
+                    )}
                     <div className="message-text">
                       {message.role === 'assistant' ? (
                         <ReactMarkdown>{message.content}</ReactMarkdown>
