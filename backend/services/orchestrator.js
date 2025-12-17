@@ -220,7 +220,7 @@ Example: If today is December 5, 2025, "this week" means December 1-7, 2025.
 User Preferences:
 ${this.formatUserPreferences(userPreferences)}
 
-Your task is to create a detailed execution plan for the user's query. Return a JSON object with this structure:
+Your task is to create a CONCISE execution plan for the user's query. Return a JSON object with this structure:
 {
   "understanding": "Brief summary of what the user wants",
   "steps": [
@@ -234,6 +234,14 @@ Your task is to create a detailed execution plan for the user's query. Return a 
   "estimated_time": "10 seconds",
   "requires_approval": ["gmail_send", "task_create"]
 }
+
+CRITICAL EFFICIENCY RULES:
+- MAXIMUM 3 TOOLS PER QUERY - Be selective and efficient
+- Choose the SINGLE BEST tool for the task, not multiple similar tools
+- If user asks to "analyze transcripts", use search_transcripts ONCE with good keywords
+- DO NOT chain multiple searches - one comprehensive search is enough
+- Prefer quality over quantity - 1-2 well-chosen tools beats 5-6 redundant ones
+- For simple questions, use 0-1 tools and rely on your knowledge
 
 Available tools (with descriptions and parameters):
 ${toolsJson}
@@ -302,6 +310,13 @@ RETURN ONLY JSON.`;
       const planText = response.content[0].text;
       const plan = this.extractJSON(planText);
 
+      // Enforce 3-tool maximum for speed
+      if (plan.steps && plan.steps.length > 3) {
+        console.warn(`[Orchestrator] Plan has ${plan.steps.length} steps, limiting to 3 for performance`);
+        plan.steps = plan.steps.slice(0, 3);
+        plan.estimated_time = '15 seconds';
+      }
+
       return {
         ...plan,
         created_at: new Date().toISOString(),
@@ -321,6 +336,13 @@ RETURN ONLY JSON.`;
       const result = await chat.sendMessage(userMessage);
       const planText = result.response.text();
       const plan = this.extractJSON(planText);
+
+      // Enforce 3-tool maximum for speed
+      if (plan.steps && plan.steps.length > 3) {
+        console.warn(`[Orchestrator] Plan has ${plan.steps.length} steps, limiting to 3 for performance`);
+        plan.steps = plan.steps.slice(0, 3);
+        plan.estimated_time = '15 seconds';
+      }
 
       return {
         ...plan,
