@@ -209,15 +209,18 @@ function ChatInterface({ user, onLogout, apiBase }) {
                 // Remove any remaining progress messages
                 setMessages(prev => prev.filter(m => !m.isProgress));
                 
-                // Reload messages to get IDs for feedback buttons
-                setTimeout(() => {
-                  loadMessages(currentSessionId);
-                }, 500);
+                // Reload messages to get IDs for feedback buttons (wait for DB save)
+                const sessionIdToReload = currentSessionId;
+                setTimeout(async () => {
+                  console.log('[Chat] Reloading messages for session:', sessionIdToReload);
+                  await loadMessages(sessionIdToReload);
+                }, 1000); // Increased delay to ensure DB save completes
                 
                 // Reload sessions with longer delay to get auto-generated title
-                setTimeout(() => {
-                  loadSessions();
-                }, 2000); // 2 second delay for title generation
+                setTimeout(async () => {
+                  console.log('[Chat] Reloading sessions for title update');
+                  await loadSessions();
+                }, 3000); // Increased to 3 seconds for title generation
               } else if (data.type === 'error') {
                 // Remove progress messages and show error
                 setMessages(prev => prev.filter(m => !m.isProgress));

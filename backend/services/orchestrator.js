@@ -912,23 +912,25 @@ ${resultsContext}`;
     } = params;
 
     if (!sessionId) {
+      console.log('[Orchestrator] saveMessage: No sessionId, skipping');
       return;
     }
 
     try {
-      await this.dbPool.query(
+      const result = await this.dbPool.query(
         `INSERT INTO agent_chat_messages 
          (session_id, role, content, model_used, tokens_used, plan_json, tool_calls, sources)
-         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)`,
+         VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
+         RETURNING id`,
         [sessionId, role, content, model_used, tokens_used, 
          plan_json ? JSON.stringify(plan_json) : null,
          tool_calls ? JSON.stringify(tool_calls) : null,
          sources ? JSON.stringify(sources) : null]
       );
+      console.log(`[Orchestrator] ✅ Saved ${role} message to session ${sessionId}, ID: ${result.rows[0]?.id}`);
     } catch (error) {
-      if (!error.message.includes('session_id')) {
-        console.error('[Orchestrator] Error saving message:', error.message);
-      }
+      console.error('[Orchestrator] ❌ Error saving message:', error.message);
+      console.error('[Orchestrator] Query params:', { sessionId, role, contentLength: content?.length });
     }
   }
 
