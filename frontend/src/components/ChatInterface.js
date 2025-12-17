@@ -12,7 +12,13 @@ function ChatInterface({ user, onLogout, apiBase }) {
   const [showSidebar, setShowSidebar] = useState(true);
   const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, messageId: null });
   const messagesEndRef = useRef(null);
+  const currentSessionIdRef = useRef(null);
   const token = localStorage.getItem('newburry_token');
+  
+  // Keep ref in sync with state for use in closures
+  useEffect(() => {
+    currentSessionIdRef.current = currentSessionId;
+  }, [currentSessionId]);
 
   useEffect(() => {
     loadSessions();
@@ -77,6 +83,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
       if (data.success) {
         setSessions([data.session, ...sessions]);
         setCurrentSessionId(data.session.id);
+        currentSessionIdRef.current = data.session.id; // Update ref immediately
         setMessages([]);
       }
     } catch (error) {
@@ -209,18 +216,20 @@ function ChatInterface({ user, onLogout, apiBase }) {
                 // Remove any remaining progress messages
                 setMessages(prev => prev.filter(m => !m.isProgress));
                 
-                // Reload messages to get IDs for feedback buttons (wait for DB save)
-                const sessionIdToReload = currentSessionId;
+                // Reload messages to get IDs for feedback buttons (use ref for current value)
                 setTimeout(async () => {
+                  const sessionIdToReload = currentSessionIdRef.current;
                   console.log('[Chat] Reloading messages for session:', sessionIdToReload);
-                  await loadMessages(sessionIdToReload);
-                }, 1000); // Increased delay to ensure DB save completes
+                  if (sessionIdToReload) {
+                    await loadMessages(sessionIdToReload);
+                  }
+                }, 1000); // Wait for DB save to complete
                 
                 // Reload sessions with longer delay to get auto-generated title
                 setTimeout(async () => {
                   console.log('[Chat] Reloading sessions for title update');
                   await loadSessions();
-                }, 3000); // Increased to 3 seconds for title generation
+                }, 3000); // 3 seconds for title generation
               } else if (data.type === 'error') {
                 // Remove progress messages and show error
                 setMessages(prev => prev.filter(m => !m.isProgress));
