@@ -44,9 +44,9 @@ module.exports = {
   // AI MODEL CONFIGURATION
   // ============================================================================
   AI_MODEL: {
-    orchestrator: 'gemini-2.0-flash-exp',
+    orchestrator: 'claude-sonnet-4.5',
     embedding: 'text-embedding-ada-002',
-    transcript_analysis: 'claude-opus-4-20250514',
+    transcript_analysis: 'claude-sonnet-4.5',
   },
   
   // ============================================================================

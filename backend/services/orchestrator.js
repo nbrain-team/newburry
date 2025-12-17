@@ -31,7 +31,8 @@ class AgenticOrchestrator {
       console.log(`✅ Orchestrator initialized with Gemini Key (length: ${apiKey.length})`);
     }
     this.genAI = new GoogleGenerativeAI(apiKey);
-    this.modelName = clientConfig.AI_MODEL.orchestrator || 'gemini-3-pro-preview';
+    this.modelName = 'claude-sonnet-4.5'; // Use Claude Sonnet 4.5 for everything
+    console.log(`✅ Orchestrator using model: ${this.modelName}`);
     
     // Initialize Anthropic for transcript analysis
     if (Anthropic && process.env.ANTHROPIC_API_KEY) {
@@ -281,24 +282,52 @@ VARIABLE SUBSTITUTION:
 Use the exact tool names and parameter names as specified above.
 RETURN ONLY JSON.`;
 
-    const model = this.genAI.getGenerativeModel({ 
-      model: this.modelName,
-      systemInstruction: systemPrompt 
-    });
+    // Use Claude Sonnet 4.5 for planning (fast and accurate)
+    if (this.anthropic) {
+      const messages = [
+        ...this.formatConversationHistoryForClaude(conversationHistory),
+        {
+          role: 'user',
+          content: userMessage,
+        },
+      ];
 
-    const chat = model.startChat({
-      history: this.formatConversationHistory(conversationHistory),
-    });
+      const response = await this.anthropic.messages.create({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 2000,
+        system: systemPrompt,
+        messages: messages,
+      });
 
-    const result = await chat.sendMessage(userMessage);
-    const planText = result.response.text();
-    const plan = this.extractJSON(planText);
+      const planText = response.content[0].text;
+      const plan = this.extractJSON(planText);
 
-    return {
-      ...plan,
-      created_at: new Date().toISOString(),
-      tokens_used: 0, // Gemini doesn't always provide easy token count in simple response, assume 0 or check usageMetadata
-    };
+      return {
+        ...plan,
+        created_at: new Date().toISOString(),
+        tokens_used: response.usage?.input_tokens + response.usage?.output_tokens || 0,
+      };
+    } else {
+      // Fallback to Gemini if Claude not available
+      const model = this.genAI.getGenerativeModel({ 
+        model: 'gemini-2.0-flash-exp',
+        systemInstruction: systemPrompt 
+      });
+
+      const chat = model.startChat({
+        history: this.formatConversationHistory(conversationHistory),
+      });
+
+      const result = await chat.sendMessage(userMessage);
+      const planText = result.response.text();
+      const plan = this.extractJSON(planText);
+
+      return {
+        ...plan,
+        created_at: new Date().toISOString(),
+        tokens_used: 0,
+      };
+    }
   }
 
   /**
@@ -613,17 +642,23 @@ ${resultsContext}`;
     // Use Claude Opus for transcript analysis if available, otherwise use Gemini
     const useClaude = isTranscriptAnalysis && this.anthropic && process.env.ANTHROPIC_API_KEY;
     
-    // Add timeout protection to synthesis (60 seconds max)
+    // Always use Claude Sonnet 4.5 for fast, high-quality synthesis
+    console.log('[Orchestrator] Starting synthesis with Claude Sonnet 4.5...');
+    
+    // Add timeout protection to synthesis (45 seconds max)
     const synthesisTimeout = new Promise((_, reject) => {
-      setTimeout(() => reject(new Error('Synthesis timeout after 60 seconds')), 60000);
+      setTimeout(() => reject(new Error('Synthesis timeout after 45 seconds')), 45000);
     });
 
-    const synthesisPromise = useClaude ? 
-      this.synthesizeWithClaude({ systemPrompt, userMessage, conversationHistory, streamCallback }) :
-      this.synthesizeWithGemini({ systemPrompt, userMessage, conversationHistory, streamCallback });
+    const synthesisPromise = this.synthesizeWithClaude({ 
+      systemPrompt, 
+      userMessage, 
+      conversationHistory, 
+      streamCallback,
+      model: 'claude-sonnet-4-20250514' // Use Sonnet 4.5 (fast and smart)
+    });
 
     try {
-      console.log(`[Orchestrator] Starting synthesis with ${useClaude ? 'Claude Opus' : 'Gemini'}...`);
       return await Promise.race([synthesisPromise, synthesisTimeout]);
     } catch (error) {
       if (error.message.includes('timeout')) {
@@ -640,10 +675,20 @@ ${resultsContext}`;
   }
 
   /**
-   * Synthesize response using Claude Opus (for transcript analysis)
+   * Synthesize response using Claude (Sonnet 4.5 or Opus)
    */
-  async synthesizeWithClaude({ systemPrompt, userMessage, conversationHistory, streamCallback }) {
+  async synthesizeWithClaude({ systemPrompt, userMessage, conversationHistory, streamCallback, model = 'claude-sonnet-4-20250514' }) {
     try {
+      // Send progress update before starting synthesis
+      if (streamCallback) {
+        await streamCallback({
+          type: 'progress',
+          data: {
+            message: 'Generating response...',
+          },
+        });
+      }
+
       // Format conversation history for Claude
       const messages = [
         ...this.formatConversationHistoryForClaude(conversationHistory),
@@ -657,8 +702,8 @@ ${resultsContext}`;
         let fullResponse = '';
         
         const stream = await this.anthropic.messages.stream({
-          model: 'claude-opus-4-20250514',
-          max_tokens: 8000,
+          model: model, // Use Sonnet 4.5 for speed
+          max_tokens: 4000, // Reduced for faster response
           system: systemPrompt,
           messages: messages,
         });
@@ -678,12 +723,12 @@ ${resultsContext}`;
         return {
           content: fullResponse,
           tokensUsed: 0,
-          model: 'claude-opus-4',
+          model: model,
         };
       } else {
         const response = await this.anthropic.messages.create({
-          model: 'claude-opus-4-20250514',
-          max_tokens: 8000,
+          model: model,
+          max_tokens: 4000,
           system: systemPrompt,
           messages: messages,
         });
@@ -691,7 +736,7 @@ ${resultsContext}`;
         return {
           content: response.content[0].text,
           tokensUsed: response.usage?.input_tokens + response.usage?.output_tokens || 0,
-          model: 'claude-opus-4',
+          model: model,
         };
       }
     } catch (error) {
