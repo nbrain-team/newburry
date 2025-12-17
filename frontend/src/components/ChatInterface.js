@@ -232,8 +232,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
         <div className="sidebar">
           <div className="sidebar-header">
             <div className="logo-small">
-              <span className="logo-newbury-small">NEWBURY</span>
-              <span className="logo-partners-small">PARTNERS</span>
+              <img src="/newbury-logo.png" alt="Newbury Partners" className="sidebar-logo-img" />
             </div>
             <button onClick={createNewSession} className="new-chat-button">
               <span className="plus-icon">+</span>
@@ -276,8 +275,8 @@ function ChatInterface({ user, onLogout, apiBase }) {
             <span>{showSidebar ? '◀' : '▶'}</span>
           </button>
           <h2 className="chat-title">{currentSession?.title || 'Select a chat'}</h2>
-          <div className="header-actions">
-            <span className="ai-badge">AI Agent</span>
+          <div className="header-logo">
+            <img src="/newbury-logo.png" alt="Newbury Partners" className="header-logo-img" />
           </div>
         </div>
 
@@ -285,7 +284,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
         <div className="messages-container">
           {messages.length === 0 ? (
             <div className="empty-state">
-              <h3>Welcome to Newburry AI Agent</h3>
+              <h3>Welcome to Newbury AI Agent</h3>
               <p>Ask me anything about Newbury Partners, search meeting transcripts, or analyze client engagements.</p>
               <div className="example-queries">
                 <button onClick={() => setInputMessage("Tell me about Newbury Partners' Bullhorn services")} className="example-query">

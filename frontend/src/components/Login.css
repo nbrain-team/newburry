@@ -82,27 +82,10 @@
   margin-bottom: 0.5rem;
 }
 
-.logo-text {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  font-size: 2rem;
-  font-weight: 700;
-  margin: 0;
-  line-height: 1.2;
-}
-
-.logo-newbury {
-  color: #1E3A8A;
-  font-size: 2.2rem;
-  letter-spacing: 0.05em;
-}
-
-.logo-partners {
-  color: #3B82F6;
-  font-size: 1.4rem;
-  letter-spacing: 0.1em;
-  font-weight: 500;
+.logo-image {
+  max-width: 280px;
+  height: auto;
+  object-fit: contain;
 }
 
 .tagline {

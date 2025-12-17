@@ -21,24 +21,15 @@
 
 .logo-small {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  font-weight: 700;
+  align-items: center;
+  justify-content: center;
   margin-bottom: 1rem;
-  line-height: 1.1;
 }
 
-.logo-newbury-small {
-  color: #1E3A8A;
-  font-size: 1.1rem;
-  letter-spacing: 0.05em;
-}
-
-.logo-partners-small {
-  color: #3B82F6;
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  font-weight: 500;
+.sidebar-logo-img {
+  max-width: 180px;
+  height: auto;
+  object-fit: contain;
 }
 
 .new-chat-button {
@@ -217,16 +208,15 @@
   gap: 0.75rem;
 }
 
-.ai-badge {
-  padding: 0.5rem 1rem;
-  background: #EFF6FF;
-  color: #1E3A8A;
-  border-radius: 20px;
-  font-size: 0.875rem;
-  font-weight: 500;
+.header-logo {
   display: flex;
   align-items: center;
-  gap: 0.5rem;
+}
+
+.header-logo-img {
+  height: 40px;
+  width: auto;
+  object-fit: contain;
 }
 
 /* Messages */

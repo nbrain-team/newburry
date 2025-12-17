@@ -56,7 +56,7 @@ function App() {
     return (
       <div className="loading-screen">
         <div className="loading-spinner"></div>
-        <p>Loading Newburry Platform...</p>
+        <p>Loading Newbury Platform...</p>
       </div>
     );
   }
