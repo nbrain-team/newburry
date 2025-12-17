@@ -13,6 +13,7 @@
     "@pinecone-database/pinecone": "^3.0.3",
     "axios": "^1.12.2",
     "bcrypt": "^6.0.0",
+    "cheerio": "^1.1.2",
     "cors": "^2.8.5",
     "dotenv": "^17.2.3",
     "express": "^4.19.2",
@@ -25,4 +26,3 @@
     "uuid": "^11.0.3"
   }
 }
-
