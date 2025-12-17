@@ -82,7 +82,6 @@ function Login({ onLogin, apiBase }) {
 
           {error && (
             <div className="error-message">
-              <span className="error-icon">⚠️</span>
               {error}
             </div>
           )}
@@ -101,10 +100,6 @@ function Login({ onLogin, apiBase }) {
 
         <div className="login-footer">
           <p>Powered by Newbury Partners</p>
-          <p className="status-indicator">
-            <span className="status-dot"></span>
-            Backend: Online
-          </p>
         </div>
       </div>
     </div>

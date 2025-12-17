@@ -198,14 +198,13 @@ function ChatInterface({ user, onLogout, apiBase }) {
             </button>
           </div>
 
-          <div className="sessions-list">
+              <div className="sessions-list">
             {sessions.map(session => (
               <div
                 key={session.id}
                 className={`session-item ${session.id === currentSessionId ? 'active' : ''}`}
                 onClick={() => setCurrentSessionId(session.id)}
               >
-                <span className="session-icon">💬</span>
                 <span className="session-title">{session.title}</span>
               </div>
             ))}
@@ -220,7 +219,6 @@ function ChatInterface({ user, onLogout, apiBase }) {
               </div>
             </div>
             <button onClick={onLogout} className="logout-button">
-              <span>🚪</span>
               Logout
             </button>
           </div>
@@ -236,7 +234,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
           </button>
           <h2 className="chat-title">{currentSession?.title || 'Select a chat'}</h2>
           <div className="header-actions">
-            <span className="ai-badge">🤖 AI Agent</span>
+            <span className="ai-badge">AI Agent</span>
           </div>
         </div>
 
@@ -244,7 +242,6 @@ function ChatInterface({ user, onLogout, apiBase }) {
         <div className="messages-container">
           {messages.length === 0 ? (
             <div className="empty-state">
-              <div className="empty-icon">🧠</div>
               <h3>Welcome to Newburry AI Agent</h3>
               <p>Ask me anything about Newbury Partners, search meeting transcripts, or analyze client engagements.</p>
               <div className="example-queries">
@@ -267,7 +264,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
                     {message.role === 'user' ? (
                       <div className="user-avatar-small">{user.name.charAt(0).toUpperCase()}</div>
                     ) : (
-                      <div className="ai-avatar">🤖</div>
+                      <div className="ai-avatar">AI</div>
                     )}
                   </div>
                   <div className="message-content">
