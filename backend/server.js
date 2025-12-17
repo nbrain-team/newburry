@@ -289,11 +289,7 @@ async function initializeAgentSystem() {
 // AGENT CHAT ROUTES
 // ============================================================================
 
-// Mount agent routes (using simplified version without file upload dependencies)
-const agentRoutes = require('./routes/agent-chat')(pool, orchestrator, toolRegistry);
-app.use('/api/agent-chat', agentRoutes);
-
-console.log('✅ Agent chat routes mounted at /api/agent-chat');
+// Note: Routes will be mounted after orchestrator is initialized in startServer()
 
 // ============================================================================
 // TRANSCRIPT ENDPOINTS
@@ -488,6 +484,11 @@ async function startServer() {
     
     // Initialize AI agent system
     await initializeAgentSystem();
+    
+    // Mount agent routes AFTER orchestrator is initialized
+    const agentRoutes = require('./routes/agent-chat')(pool, orchestrator, toolRegistry);
+    app.use('/api/agent-chat', agentRoutes);
+    console.log('✅ Agent chat routes mounted at /api/agent-chat');
     
     // Start server
     server.listen(PORT, '0.0.0.0', () => {
