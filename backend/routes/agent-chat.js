@@ -341,9 +341,12 @@ module.exports = function(dbPool, orchestrator, toolRegistry) {
         cleanup();
       }
 
-      // Auto-generate session title after first exchange
-      setImmediate(async () => {
+      // Auto-generate session title after first exchange (run in background)
+      (async () => {
         try {
+          // Wait a moment for messages to be saved
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
           if (!session.title || session.title === 'New Chat') {
             const messagesResult = await dbPool.query(
               `SELECT content, role FROM agent_chat_messages 
@@ -356,19 +359,21 @@ module.exports = function(dbPool, orchestrator, toolRegistry) {
             if (messagesResult.rowCount >= 2) {
               const generatedTitle = await generateChatTitle(messagesResult.rows);
               
-              if (generatedTitle) {
+              if (generatedTitle && generatedTitle !== 'Chat') {
                 await dbPool.query(
                   'UPDATE agent_chat_sessions SET title = $1, updated_at = NOW() WHERE id = $2',
                   [generatedTitle, sessionId]
                 );
-                console.log(`[AI Agent] Auto-generated title for session ${sessionId}: "${generatedTitle}"`);
+                console.log(`[AI Agent] ✅ Auto-generated title for session ${sessionId}: "${generatedTitle}"`);
+              } else {
+                console.log(`[AI Agent] ⚠️ Title generation returned empty or default for session ${sessionId}`);
               }
             }
           }
         } catch (error) {
-          console.error('[AI Agent] Error auto-generating title:', error);
+          console.error('[AI Agent] ❌ Error auto-generating title:', error);
         }
-      });
+      })();
 
     } catch (error) {
       console.error('[Routes] Error processing message:', error);

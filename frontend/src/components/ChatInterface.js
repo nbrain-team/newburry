@@ -212,8 +212,12 @@ function ChatInterface({ user, onLogout, apiBase }) {
                 // Reload messages to get IDs for feedback buttons
                 setTimeout(() => {
                   loadMessages(currentSessionId);
+                }, 500);
+                
+                // Reload sessions with longer delay to get auto-generated title
+                setTimeout(() => {
                   loadSessions();
-                }, 500); // Small delay to allow backend to save messages
+                }, 2000); // 2 second delay for title generation
               } else if (data.type === 'error') {
                 // Remove progress messages and show error
                 setMessages(prev => prev.filter(m => !m.isProgress));
