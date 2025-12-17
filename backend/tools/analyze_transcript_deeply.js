@@ -96,51 +96,26 @@ module.exports = {
       // Get the specialized transcript analysis prompt
       const systemPrompt = clientConfig.getSystemPrompt('transcript_analyzer');
       
-      // Run first 3 passes in PARALLEL for speed
-      console.log('[DeepTranscriptAnalysis] Running parallel analysis passes (1-3)...');
-      const [pass1Result, pass2Result, pass3Result] = await Promise.all([
-        // PASS 1: Extract explicit action items
-        analyzeWithAI(
-          transcript_text,
-          systemPrompt,
-          'Extract ALL explicit action items and commitments. Focus on phrases like "I will", "I\'ll send", "Let me", etc.',
-          use_claude
-        ),
-        // PASS 2: Extract implicit commitments and questions
-        analyzeWithAI(
-          transcript_text,
-          systemPrompt,
-          'Extract ALL implicit commitments, questions that need answers, and any follow-up items that weren\'t explicitly stated as action items.',
-          use_claude
-        ),
-        // PASS 3: Identify decisions and key topics
-        analyzeWithAI(
-          transcript_text,
-          systemPrompt,
-          'Extract ALL decisions made, key topics discussed, and any next steps or future meetings mentioned.',
-          use_claude
-        ),
-      ]);
-      
-      console.log('[DeepTranscriptAnalysis] Parallel passes complete. Running verification pass...');
-      
-      // PASS 4: Verification pass (must run after others)
-      const combinedResults = {
-        pass1: pass1Result,
-        pass2: pass2Result,
-        pass3: pass3Result,
-      };
-      
-      const pass4Result = await analyzeWithAI(
+      // SIMPLIFIED: Single comprehensive pass for speed (no multi-pass)
+      console.log('[DeepTranscriptAnalysis] Running single comprehensive analysis pass...');
+      const analysisResult = await analyzeWithAI(
         transcript_text,
         systemPrompt,
-        `Review the transcript one more time. Here's what was found in previous passes:\n\n${JSON.stringify(combinedResults, null, 2)}\n\nDid we miss ANY action items, commitments, questions, or follow-ups? Extract anything that was missed.`,
+        `Analyze this transcript comprehensively and extract:
+1. ALL explicit and implicit action items and commitments
+2. ALL questions that need answers
+3. ALL decisions made
+4. Key topics discussed
+5. Next steps or future meetings
+
+Be thorough but efficient. Return complete structured JSON.`,
         use_claude
       );
       
-      // Combine and deduplicate all results
-      console.log('[DeepTranscriptAnalysis] Combining and deduplicating results...');
-      let finalAnalysis = combineAndDeduplicate([pass1Result, pass2Result, pass3Result, pass4Result]);
+      console.log('[DeepTranscriptAnalysis] Analysis complete.');
+      
+      // Use the single pass result
+      let finalAnalysis = analysisResult;
       
       // Add metadata
       finalAnalysis.analysis_metadata = {
@@ -148,8 +123,8 @@ module.exports = {
         transcript_id: transcript_id || null,
         transcript_length_chars: transcript_text.length,
         transcript_length_words: transcript_text.split(/\s+/).length,
-        analysis_passes: 4,
-        model_used: use_claude ? 'Claude Opus' : 'Gemini Pro',
+        analysis_passes: 1,
+        model_used: use_claude ? 'Claude Opus' : 'Gemini Flash',
         analyzed_at: new Date().toISOString(),
       };
       
