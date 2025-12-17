@@ -21,15 +21,24 @@
 
 .logo-small {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
+  align-items: flex-start;
+  font-weight: 700;
   margin-bottom: 1rem;
+  line-height: 1.1;
 }
 
-.sidebar-logo-img {
-  max-width: 180px;
-  height: auto;
-  object-fit: contain;
+.logo-newbury-small {
+  color: #1E3A8A;
+  font-size: 1.1rem;
+  letter-spacing: 0.05em;
+}
+
+.logo-partners-small {
+  color: #3B82F6;
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  font-weight: 500;
 }
 
 .new-chat-button {
@@ -213,10 +222,25 @@
   align-items: center;
 }
 
-.header-logo-img {
-  height: 40px;
-  width: auto;
-  object-fit: contain;
+.header-logo-text {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+}
+
+.logo-newbury-header {
+  color: #1E3A8A;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.logo-partners-header {
+  color: #3B82F6;
+  font-size: 0.65rem;
+  letter-spacing: 0.1em;
+  font-weight: 500;
 }
 
 /* Messages */

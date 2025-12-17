@@ -232,7 +232,8 @@ function ChatInterface({ user, onLogout, apiBase }) {
         <div className="sidebar">
           <div className="sidebar-header">
             <div className="logo-small">
-              <img src="/newbury-logo.png" alt="Newbury Partners" className="sidebar-logo-img" />
+              <span className="logo-newbury-small">NEWBURY</span>
+              <span className="logo-partners-small">PARTNERS</span>
             </div>
             <button onClick={createNewSession} className="new-chat-button">
               <span className="plus-icon">+</span>
@@ -276,7 +277,10 @@ function ChatInterface({ user, onLogout, apiBase }) {
           </button>
           <h2 className="chat-title">{currentSession?.title || 'Select a chat'}</h2>
           <div className="header-logo">
-            <img src="/newbury-logo.png" alt="Newbury Partners" className="header-logo-img" />
+            <span className="header-logo-text">
+              <span className="logo-newbury-header">NEWBURY</span>
+              <span className="logo-partners-header">PARTNERS</span>
+            </span>
           </div>
         </div>
 
