@@ -183,10 +183,11 @@ function ChatInterface({ user, onLogout, apiBase }) {
                 // Remove any remaining progress messages
                 setMessages(prev => prev.filter(m => !m.isProgress));
                 
-                // Final message received - refresh sessions to get auto-generated title
+                // Reload messages to get IDs for feedback buttons
                 setTimeout(() => {
+                  loadMessages(currentSessionId);
                   loadSessions();
-                }, 1000); // Small delay to allow backend to generate title
+                }, 500); // Small delay to allow backend to save messages
               } else if (data.type === 'error') {
                 // Remove progress messages and show error
                 setMessages(prev => prev.filter(m => !m.isProgress));
