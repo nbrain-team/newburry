@@ -100,6 +100,33 @@
   text-overflow: ellipsis;
 }
 
+.delete-session-button {
+  width: 24px;
+  height: 24px;
+  border: none;
+  background: transparent;
+  color: #9ca3af;
+  font-size: 1.25rem;
+  font-weight: 300;
+  cursor: pointer;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0;
+  transition: all 0.2s;
+  flex-shrink: 0;
+}
+
+.session-item:hover .delete-session-button {
+  opacity: 1;
+}
+
+.delete-session-button:hover {
+  background: #fee2e2;
+  color: #dc2626;
+}
+
 .sidebar-footer {
   padding: 1rem;
   border-top: 1px solid #e5e7eb;

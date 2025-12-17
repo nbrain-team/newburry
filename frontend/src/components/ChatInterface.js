@@ -91,6 +91,41 @@ function ChatInterface({ user, onLogout, apiBase }) {
     }
   };
 
+  const deleteSession = async (e, sessionId) => {
+    e.stopPropagation(); // Prevent triggering session selection
+    
+    if (!window.confirm('Are you sure you want to delete this chat?')) {
+      return;
+    }
+    
+    try {
+      const response = await fetch(`${apiBase}/api/agent-chat/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: { 'Authorization': `Bearer ${token}` }
+      });
+      
+      if (response.ok) {
+        // Remove from sessions list
+        setSessions(prev => prev.filter(s => s.id !== sessionId));
+        
+        // If we deleted the current session, switch to another or clear
+        if (currentSessionId === sessionId) {
+          const remainingSessions = sessions.filter(s => s.id !== sessionId);
+          if (remainingSessions.length > 0) {
+            setCurrentSessionId(remainingSessions[0].id);
+            currentSessionIdRef.current = remainingSessions[0].id;
+          } else {
+            setCurrentSessionId(null);
+            currentSessionIdRef.current = null;
+            setMessages([]);
+          }
+        }
+      }
+    } catch (error) {
+      console.error('Error deleting session:', error);
+    }
+  };
+
   const sendMessage = async () => {
     if (!inputMessage.trim() || !currentSessionId || isLoading) return;
 
@@ -316,6 +351,13 @@ function ChatInterface({ user, onLogout, apiBase }) {
                 onClick={() => setCurrentSessionId(session.id)}
               >
                 <span className="session-title">{session.title}</span>
+                <button 
+                  className="delete-session-button"
+                  onClick={(e) => deleteSession(e, session.id)}
+                  title="Delete chat"
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
