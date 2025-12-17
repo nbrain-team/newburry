@@ -184,13 +184,11 @@ REQUIRED APPROACH:
 
 **CITATION FORMAT:**
 Place all sources and confidence scores at the END of your response in a clean format:
-```
----
+
 Sources:
 - [Website: Bullhorn Implementation] (Confidence: 0.95)
 - [Transcript: Meeting with Client X, Dec 15] (Confidence: 0.90)
 - [Website: About Us] (Confidence: 0.88)
-```
 
 **EXAMPLES OF WHAT TO AVOID:**
 - ❌ "While I don't have specific details readily available..."
