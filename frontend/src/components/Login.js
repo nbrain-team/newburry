@@ -46,10 +46,7 @@ function Login({ onLogin, apiBase }) {
       <div className="login-card">
         <div className="login-header">
           <div className="logo">
-            <h1 className="logo-text">
-              <span className="logo-newbury">NEWBURY</span>
-              <span className="logo-partners">PARTNERS</span>
-            </h1>
+            <img src="/newbury-logo.png" alt="Newbury Partners" className="logo-image" />
           </div>
           <p className="tagline">AI-Powered Business Intelligence Platform</p>
         </div>
