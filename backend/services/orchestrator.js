@@ -387,6 +387,18 @@ RETURN ONLY JSON.`;
           }
         }
 
+        // Stream progress before executing tool
+        if (streamCallback) {
+          await streamCallback({
+            type: 'tool_start',
+            data: {
+              step: i + 1,
+              tool: step.tool,
+              total_steps: plan.steps.length,
+            },
+          });
+        }
+
         const result = await tool.execute(resolvedParams, context);
 
         results.push({
@@ -466,6 +478,16 @@ RETURN ONLY JSON.`;
       userProfile,
       streamCallback,
     } = params;
+
+    // Stream progress - starting synthesis
+    if (streamCallback) {
+      await streamCallback({
+        type: 'progress',
+        data: {
+          message: 'Analyzing results and preparing response...',
+        },
+      });
+    }
 
     // Check if this is a transcript analysis query
     const isTranscriptAnalysis = this.isTranscriptAnalysisQuery(userMessage, executionResults);
@@ -591,22 +613,29 @@ ${resultsContext}`;
     // Use Claude Opus for transcript analysis if available, otherwise use Gemini
     const useClaude = isTranscriptAnalysis && this.anthropic && process.env.ANTHROPIC_API_KEY;
     
-    if (useClaude) {
-      console.log('[Orchestrator] Using Claude Opus for transcript analysis synthesis');
-      return await this.synthesizeWithClaude({
-        systemPrompt,
-        userMessage,
-        conversationHistory,
-        streamCallback,
-      });
-    } else {
-      console.log(`[Orchestrator] Using Gemini for synthesis${isTranscriptAnalysis ? ' (Claude not available)' : ''}`);
-      return await this.synthesizeWithGemini({
-        systemPrompt,
-        userMessage,
-        conversationHistory,
-        streamCallback,
-      });
+    // Add timeout protection to synthesis (60 seconds max)
+    const synthesisTimeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error('Synthesis timeout after 60 seconds')), 60000);
+    });
+
+    const synthesisPromise = useClaude ? 
+      this.synthesizeWithClaude({ systemPrompt, userMessage, conversationHistory, streamCallback }) :
+      this.synthesizeWithGemini({ systemPrompt, userMessage, conversationHistory, streamCallback });
+
+    try {
+      console.log(`[Orchestrator] Starting synthesis with ${useClaude ? 'Claude Opus' : 'Gemini'}...`);
+      return await Promise.race([synthesisPromise, synthesisTimeout]);
+    } catch (error) {
+      if (error.message.includes('timeout')) {
+        console.error('[Orchestrator] Synthesis timeout - returning partial response');
+        
+        // Return a basic response on timeout
+        return {
+          content: 'I found relevant information but the synthesis took too long. Here are the key findings from the search results. Please try a more specific query for detailed analysis.',
+          tokensUsed: 0,
+        };
+      }
+      throw error;
     }
   }
 

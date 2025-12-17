@@ -136,21 +136,47 @@ function ChatInterface({ user, onLogout, apiBase }) {
                 // Show that AI is starting to work
                 setMessages(prev => [...prev, {
                   role: 'system',
-                  content: `🔍 Analyzing your request...`,
+                  content: `🔍 Planning your request...`,
                   created_at: new Date().toISOString(),
                   isProgress: true
                 }]);
-              } else if (data.type === 'tool_result') {
-                // Show only the current tool being executed
-                const { step, tool, success } = data.data;
+              } else if (data.type === 'tool_start') {
+                // Show tool starting
+                const { step, tool, total_steps } = data.data;
                 const toolName = tool.replace(/_/g, ' ');
                 
                 setMessages(prev => {
-                  // Replace progress message with current step only
                   const filtered = prev.filter(m => !m.isProgress);
                   return [...filtered, {
                     role: 'system',
-                    content: `⚙️ ${toolName}...`,
+                    content: `⚙️ Step ${step}/${total_steps}: ${toolName}...`,
+                    created_at: new Date().toISOString(),
+                    isProgress: true
+                  }];
+                });
+              } else if (data.type === 'tool_result') {
+                // Show tool completed
+                const { step, tool, success, total_steps } = data.data;
+                const toolName = tool.replace(/_/g, ' ');
+                
+                setMessages(prev => {
+                  const filtered = prev.filter(m => !m.isProgress);
+                  return [...filtered, {
+                    role: 'system',
+                    content: `✓ Completed: ${toolName}`,
+                    created_at: new Date().toISOString(),
+                    isProgress: true
+                  }];
+                });
+              } else if (data.type === 'progress') {
+                // Show custom progress message
+                const { message } = data.data;
+                
+                setMessages(prev => {
+                  const filtered = prev.filter(m => !m.isProgress);
+                  return [...filtered, {
+                    role: 'system',
+                    content: `💭 ${message}`,
                     created_at: new Date().toISOString(),
                     isProgress: true
                   }];
