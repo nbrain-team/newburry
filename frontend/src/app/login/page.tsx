@@ -32,8 +32,8 @@ export default function LoginPage() {
           document.cookie = `xsourcing_token=${data.token}; Max-Age=${7 * 24 * 60 * 60}; Path=/; SameSite=Lax;`;
         } catch (_) { /* ignore */ }
       }
-      // Redirect to AI agent page after login
-      window.location.href = "/ai-agent";
+      // Redirect to AI agent page after login (in dashboard)
+      window.location.href = "/ai-agent"; // This will work with the (dashboard) route group
     } catch (e: unknown) {
       if (e instanceof Error) setError(e.message);
       else setError("An unexpected error occurred.");
