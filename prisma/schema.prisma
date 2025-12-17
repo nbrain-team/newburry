@@ -62,6 +62,7 @@ model AgentChatSession {
   // Relations
   user     User                @relation(fields: [userId], references: [id], onDelete: Cascade)
   messages AgentChatMessage[]
+  feedback AgentFeedback[]
 
   @@index([userId])
   @@index([clientId])
@@ -119,10 +120,12 @@ model AgentUserPreference {
 model AgentFeedback {
   id                  Int       @id @default(autoincrement())
   messageId           Int       @map("message_id")
+  sessionId           Int       @map("session_id")
   userId              Int       @map("user_id")
-  rating              Int       // 1 = thumbs up, -1 = thumbs down
+  rating              Int?      // 1 = thumbs up, -1 = thumbs down, null = general feedback
   categories          Json?
   textFeedback        String?   @map("text_feedback") @db.Text
+  fullConversation    Json?     @map("full_conversation") // Stores entire chat history
   trainingInstruction String?   @map("training_instruction") @db.Text
   status              String    @default("pending") @db.VarChar(20)
   approvedBy          Int?      @map("approved_by")
@@ -131,9 +134,11 @@ model AgentFeedback {
 
   // Relations
   message AgentChatMessage @relation(fields: [messageId], references: [id], onDelete: Cascade)
+  session AgentChatSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
   user    User             @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@index([messageId])
+  @@index([sessionId])
   @@index([userId])
   @@index([status])
   @@map("agent_feedback")

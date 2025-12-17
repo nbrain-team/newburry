@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
+import FeedbackModal from './FeedbackModal';
 import './ChatInterface.css';
 
 function ChatInterface({ user, onLogout, apiBase }) {
@@ -9,6 +10,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
   const [inputMessage, setInputMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [showSidebar, setShowSidebar] = useState(true);
+  const [feedbackModal, setFeedbackModal] = useState({ isOpen: false, messageId: null });
   const messagesEndRef = useRef(null);
   const token = localStorage.getItem('newburry_token');
 
@@ -223,6 +225,33 @@ function ChatInterface({ user, onLogout, apiBase }) {
     }
   };
 
+  const handleFeedbackSubmit = async (feedbackText) => {
+    try {
+      const response = await fetch(`${apiBase}/api/feedback/submit`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message_id: feedbackModal.messageId,
+          session_id: currentSessionId,
+          text_feedback: feedbackText,
+          full_conversation: messages
+        })
+      });
+
+      const data = await response.json();
+      
+      if (data.success) {
+        console.log('Feedback submitted successfully');
+        // Could show a success toast here
+      }
+    } catch (error) {
+      console.error('Error submitting feedback:', error);
+    }
+  };
+
   const currentSession = sessions.find(s => s.id === currentSessionId);
 
   return (
@@ -329,6 +358,15 @@ function ChatInterface({ user, onLogout, apiBase }) {
                         message.content
                       )}
                     </div>
+                    {message.role === 'assistant' && message.id && (
+                      <button 
+                        className="feedback-button"
+                        onClick={() => setFeedbackModal({ isOpen: true, messageId: message.id })}
+                        title="Provide feedback"
+                      >
+                        +
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -366,6 +404,15 @@ function ChatInterface({ user, onLogout, apiBase }) {
           </div>
         </div>
       </div>
+
+      {/* Feedback Modal */}
+      <FeedbackModal
+        isOpen={feedbackModal.isOpen}
+        onClose={() => setFeedbackModal({ isOpen: false, messageId: null })}
+        onSubmit={handleFeedbackSubmit}
+        messageId={feedbackModal.messageId}
+        sessionId={currentSessionId}
+      />
     </div>
   );
 }

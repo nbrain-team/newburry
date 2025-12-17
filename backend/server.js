@@ -490,6 +490,11 @@ async function startServer() {
     app.use('/api/agent-chat', agentRoutes);
     console.log('✅ Agent chat routes mounted at /api/agent-chat');
     
+    // Mount feedback routes
+    const feedbackRoutes = require('./routes/feedback')(pool);
+    app.use('/api/feedback', feedbackRoutes);
+    console.log('✅ Feedback routes mounted at /api/feedback');
+    
     // Start server
     server.listen(PORT, '0.0.0.0', () => {
       console.log('');
