@@ -127,7 +127,35 @@ function ChatInterface({ user, onLogout, apiBase }) {
   };
 
   const sendMessage = async () => {
-    if (!inputMessage.trim() || !currentSessionId || isLoading) return;
+    if (!inputMessage.trim() || isLoading) return;
+    
+    // Auto-create a session if none exists
+    let sessionId = currentSessionId;
+    if (!sessionId) {
+      try {
+        const response = await fetch(`${apiBase}/api/agent-chat/sessions`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`
+          },
+          body: JSON.stringify({ title: 'New Chat' })
+        });
+        const data = await response.json();
+        if (data.success) {
+          setSessions([data.session, ...sessions]);
+          setCurrentSessionId(data.session.id);
+          currentSessionIdRef.current = data.session.id;
+          sessionId = data.session.id;
+        } else {
+          console.error('Failed to create session');
+          return;
+        }
+      } catch (error) {
+        console.error('Error creating session:', error);
+        return;
+      }
+    }
 
     const userMessage = inputMessage;
     setInputMessage('');
@@ -142,7 +170,7 @@ function ChatInterface({ user, onLogout, apiBase }) {
     setMessages(prev => [...prev, newUserMessage]);
 
     try {
-      const response = await fetch(`${apiBase}/api/agent-chat/sessions/${currentSessionId}/message`, {
+      const response = await fetch(`${apiBase}/api/agent-chat/sessions/${sessionId}/message`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -462,12 +490,12 @@ function ChatInterface({ user, onLogout, apiBase }) {
               onKeyPress={handleKeyPress}
               placeholder="Ask about transcripts, Newbury Partners services, or anything else..."
               rows="1"
-              disabled={isLoading || !currentSessionId}
+              disabled={isLoading}
               className="chat-input"
             />
             <button
               onClick={sendMessage}
-              disabled={isLoading || !inputMessage.trim() || !currentSessionId}
+              disabled={isLoading || !inputMessage.trim()}
               className="send-button"
             >
               {isLoading ? (
