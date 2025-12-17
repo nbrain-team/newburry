@@ -271,29 +271,75 @@ module.exports = function(dbPool, orchestrator, toolRegistry) {
 
       const session = sessionCheck.rows[0];
 
-      // Set up streaming response
+      // Set up streaming response with timeout handling
       res.setHeader('Content-Type', 'text/event-stream');
       res.setHeader('Cache-Control', 'no-cache');
       res.setHeader('Connection', 'keep-alive');
+      res.setHeader('X-Accel-Buffering', 'no'); // Disable nginx buffering
+
+      // Keep connection alive with heartbeat
+      const heartbeatInterval = setInterval(() => {
+        if (!res.writableEnded) {
+          res.write(': heartbeat\n\n');
+        }
+      }, 15000); // Every 15 seconds
 
       const streamCallback = async (event) => {
-        res.write(`data: ${JSON.stringify(event)}\n\n`);
+        try {
+          if (!res.writableEnded) {
+            res.write(`data: ${JSON.stringify(event)}\n\n`);
+          }
+        } catch (err) {
+          console.error('[Stream] Write error:', err);
+        }
       };
 
-      // Process query through orchestrator
-      const result = await orchestrator.processQuery({
-        userMessage: message,
-        conversationHistory: conversation_history,
-        sessionId: parseInt(sessionId),
-        userId: req.userId,
-        clientId: null,
-        projectId: session.project_id,
-        streamCallback,
+      // Cleanup function
+      const cleanup = () => {
+        clearInterval(heartbeatInterval);
+      };
+
+      // Handle client disconnect
+      req.on('close', () => {
+        console.log('[Stream] Client disconnected');
+        cleanup();
       });
 
-      // Send final result
-      res.write(`data: ${JSON.stringify({ type: 'complete', data: result })}\n\n`);
-      res.end();
+      try {
+        // Process query through orchestrator with timeout
+        const timeoutPromise = new Promise((_, reject) => {
+          setTimeout(() => reject(new Error('Request timeout after 120 seconds')), 120000);
+        });
+
+        const queryPromise = orchestrator.processQuery({
+          userMessage: message,
+          conversationHistory: conversation_history,
+          sessionId: parseInt(sessionId),
+          userId: req.userId,
+          clientId: null,
+          projectId: session.project_id,
+          streamCallback,
+        });
+
+        const result = await Promise.race([queryPromise, timeoutPromise]);
+
+        // Send final result
+        if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ type: 'complete', data: result })}\n\n`);
+          res.end();
+        }
+      } catch (error) {
+        console.error('[Stream] Processing error:', error);
+        if (!res.writableEnded) {
+          res.write(`data: ${JSON.stringify({ 
+            type: 'error', 
+            error: 'Processing timeout. Please try a simpler query or break it into smaller parts.' 
+          })}\n\n`);
+          res.end();
+        }
+      } finally {
+        cleanup();
+      }
 
       // Auto-generate session title after first exchange
       setImmediate(async () => {

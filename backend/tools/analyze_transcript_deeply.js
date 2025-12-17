@@ -96,35 +96,35 @@ module.exports = {
       // Get the specialized transcript analysis prompt
       const systemPrompt = clientConfig.getSystemPrompt('transcript_analyzer');
       
-      // PASS 1: Extract explicit action items
-      console.log('[DeepTranscriptAnalysis] Pass 1: Extracting explicit action items...');
-      const pass1Result = await analyzeWithAI(
-        transcript_text,
-        systemPrompt,
-        'Extract ALL explicit action items and commitments. Focus on phrases like "I will", "I\'ll send", "Let me", etc.',
-        use_claude
-      );
+      // Run first 3 passes in PARALLEL for speed
+      console.log('[DeepTranscriptAnalysis] Running parallel analysis passes (1-3)...');
+      const [pass1Result, pass2Result, pass3Result] = await Promise.all([
+        // PASS 1: Extract explicit action items
+        analyzeWithAI(
+          transcript_text,
+          systemPrompt,
+          'Extract ALL explicit action items and commitments. Focus on phrases like "I will", "I\'ll send", "Let me", etc.',
+          use_claude
+        ),
+        // PASS 2: Extract implicit commitments and questions
+        analyzeWithAI(
+          transcript_text,
+          systemPrompt,
+          'Extract ALL implicit commitments, questions that need answers, and any follow-up items that weren\'t explicitly stated as action items.',
+          use_claude
+        ),
+        // PASS 3: Identify decisions and key topics
+        analyzeWithAI(
+          transcript_text,
+          systemPrompt,
+          'Extract ALL decisions made, key topics discussed, and any next steps or future meetings mentioned.',
+          use_claude
+        ),
+      ]);
       
-      // PASS 2: Extract implicit commitments and questions
-      console.log('[DeepTranscriptAnalysis] Pass 2: Extracting implicit commitments and questions...');
-      const pass2Result = await analyzeWithAI(
-        transcript_text,
-        systemPrompt,
-        'Extract ALL implicit commitments, questions that need answers, and any follow-up items that weren\'t explicitly stated as action items.',
-        use_claude
-      );
+      console.log('[DeepTranscriptAnalysis] Parallel passes complete. Running verification pass...');
       
-      // PASS 3: Identify decisions and key topics
-      console.log('[DeepTranscriptAnalysis] Pass 3: Identifying decisions and key topics...');
-      const pass3Result = await analyzeWithAI(
-        transcript_text,
-        systemPrompt,
-        'Extract ALL decisions made, key topics discussed, and any next steps or future meetings mentioned.',
-        use_claude
-      );
-      
-      // PASS 4: Verification pass
-      console.log('[DeepTranscriptAnalysis] Pass 4: Verification pass to catch missed items...');
+      // PASS 4: Verification pass (must run after others)
       const combinedResults = {
         pass1: pass1Result,
         pass2: pass2Result,
@@ -216,7 +216,7 @@ module.exports = {
 };
 
 /**
- * Analyze transcript with AI (Claude or Gemini)
+ * Analyze transcript with AI (Claude or Gemini) with timeout protection
  */
 async function analyzeWithAI(transcriptText, systemPrompt, specificInstructions, useClaude = true) {
   const fullPrompt = `${specificInstructions}
@@ -226,43 +226,64 @@ ${transcriptText}
 
 Return your analysis in the exact JSON format specified in the system prompt. Be thorough and precise.`;
 
+  // Timeout wrapper for AI calls (30 seconds per pass)
+  const timeoutPromise = new Promise((_, reject) => {
+    setTimeout(() => reject(new Error('AI analysis timeout after 30 seconds')), 30000);
+  });
+
   try {
-    if (useClaude && Anthropic && process.env.ANTHROPIC_API_KEY) {
-      // Use Claude Opus for maximum thoroughness
-      const anthropic = new Anthropic({
-        apiKey: process.env.ANTHROPIC_API_KEY,
-      });
-      
-      const response = await anthropic.messages.create({
-        model: 'claude-opus-4-20250514',
-        max_tokens: 8000,
-        system: systemPrompt,
-        messages: [
-          {
-            role: 'user',
-            content: fullPrompt,
-          },
-        ],
-      });
-      
-      const responseText = response.content[0].text;
-      return parseAIResponse(responseText);
-      
-    } else {
-      // Fallback to Gemini
-      const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({
-        model: 'gemini-3-pro-preview',
-        systemInstruction: systemPrompt,
-      });
-      
-      const result = await model.generateContent(fullPrompt);
-      const responseText = result.response.text();
-      return parseAIResponse(responseText);
-    }
+    const analysisPromise = (async () => {
+      if (useClaude && Anthropic && process.env.ANTHROPIC_API_KEY) {
+        // Use Claude Opus for maximum thoroughness
+        const anthropic = new Anthropic({
+          apiKey: process.env.ANTHROPIC_API_KEY,
+        });
+        
+        const response = await anthropic.messages.create({
+          model: 'claude-opus-4-20250514',
+          max_tokens: 6000, // Reduced for faster response
+          system: systemPrompt,
+          messages: [
+            {
+              role: 'user',
+              content: fullPrompt,
+            },
+          ],
+        });
+        
+        const responseText = response.content[0].text;
+        return parseAIResponse(responseText);
+        
+      } else {
+        // Fallback to Gemini (faster)
+        const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
+        const model = genAI.getGenerativeModel({
+          model: 'gemini-2.0-flash-exp', // Use faster flash model
+          systemInstruction: systemPrompt,
+        });
+        
+        const result = await model.generateContent(fullPrompt);
+        const responseText = result.response.text();
+        return parseAIResponse(responseText);
+      }
+    })();
+
+    return await Promise.race([analysisPromise, timeoutPromise]);
   } catch (error) {
     console.error('[DeepTranscriptAnalysis] AI analysis error:', error);
-    throw error;
+    
+    // Return empty structure on timeout/error instead of failing completely
+    return {
+      action_items: [],
+      questions_needing_answers: [],
+      decisions_made: [],
+      key_topics_discussed: [],
+      next_meeting: { scheduled: false },
+      analysis_metadata: {
+        error: error.message,
+        pass_failed: true,
+      },
+    };
   }
 }
 
