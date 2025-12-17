@@ -289,8 +289,8 @@ async function initializeAgentSystem() {
 // AGENT CHAT ROUTES
 // ============================================================================
 
-// Mount agent routes
-const agentRoutes = require('./routes/index')(pool, orchestrator, toolRegistry);
+// Mount agent routes (using simplified version without file upload dependencies)
+const agentRoutes = require('./routes/agent-chat')(pool, orchestrator, toolRegistry);
 app.use('/api/agent-chat', agentRoutes);
 
 console.log('✅ Agent chat routes mounted at /api/agent-chat');
