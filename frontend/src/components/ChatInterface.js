@@ -304,9 +304,6 @@ function ChatInterface({ user, onLogout, apiBase }) {
             <span>{showSidebar ? '◀' : '▶'}</span>
           </button>
           <h2 className="chat-title">{currentSession?.title || 'Select a chat'}</h2>
-          <div className="header-logo">
-            <img src="/newbury-logo.png" alt="Newbury Partners" className="header-logo-img" />
-          </div>
         </div>
 
         {/* Messages */}
